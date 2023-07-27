@@ -1,0 +1,126 @@
+
+XX equ $160C
+
+org $1800 ; sezioneDati
+
+Obj_array:
+
+dc.w 22,110
+dc.l met_copy
+dc.w 13,96
+dc.l met_mod
+dc.w -7,12
+dc.l met_add
+dc.w 27,102
+dc.l met_sub
+dc.w 27,-112
+dc.l met_copy
+dc.w -31,99
+dc.l met_addmul
+dc.w 43,106
+dc.l met_sub
+dc.w 8,131
+dc.l met_add
+
+Obj_array_end:
+
+
+
+cod_beg:
+
+ORG $2000 ;sezioneCodice
+    * Write here your code
+    move.l #2,d4
+    move.l d4,XX
+    move.l #16384,sp
+    move.w #5,-(sp)
+    move.l XX,-(sp)
+    sub.l #4,sp
+    bsr call_method
+    move.l (sp)+,d5 *pop risultato in d5
+    add.l #6,sp *avanzo lo sp di 6 deallocando lo stack
+
+    and.w #$0007,d5
+
+    move.w d5,-(sp)
+    move.l XX,-(sp)
+    sub.l #4,sp
+    bsr call_method
+    move.l (sp)+, $1608
+    add.l #6,sp
+    code_end:
+    bra code_end
+
+
+    call_method:
+
+    move.l #Obj_array,a0
+    move.w 12(sp),d0 *inserimento primo parametro in d0
+    move.l  8(sp),d1 *inserimento secondo parametro in d1
+
+    asl #3,d0  *primo parametro moltiplicato per 8, per ottenere offset dall'indirizzo dell'array
+    move.l 4(a0,d0),a1 *copia del contenuto della parola di memoria il cui indirizzo 
+    *è uguale al contenuto di a0(indirizzo array) + contenuto di d0(offsett call metodo )
+    *indiretto con offset
+    jmp (a1) *call metodo
+
+    ret_method:
+
+    move.l d7,4(sp)
+
+    rts
+
+    met_copy:
+    move.l d1,d7
+    bra ret_method
+
+    met_addmul:
+    move.w (a0,d0),d7 *a0+d0 = indirizzo oggetto = indirizzo primo field, move del valore nel primo field  in d7 tramite indiretto-registro
+    muls 2(a0,d0),d7 *moltiplicazione valore secondo field oggetto per valore primo field , risultato in d7
+    add.l d1,d7 *add del secondo parametro di call_method a d7
+    bra ret_method
+
+    met_sub:
+    move.w 2(a0,d0),d2 *ricaviamo il valore del secondo field dell oggetto mettendolo in d2
+    ext.l d2 *estendo d2 a long tramite interpretazione signed
+    sub.l d2,d1 *sub secondo field - secondo parametetro salvata in d1
+    move.l d1,d7 *salvo il risultato in d7
+
+    bra ret_method
+
+    met_add:
+    move.w (a0,d0),d2 *ricaviamo il valore del primo field mettendolo in d2
+    ext.l  d2 *estendo d2 a long tramite interpretazione signed
+    add.l d2,d1 *add primo field + secondo paramtero salvata in d1
+    move.l d1,d7 *salvo il risultato in d7
+
+    bra ret_method
+
+    met_mod:
+    move.l  (a0,d0),d2 *ricaviamo il valore del primo field mettendolo in d2
+    *tramite l'estensione .l (a0,d0) viene esteso a long tramite interprest unsigned
+    move.w 2(a0,d0),d3 *ricaviamo il valore del secondo field dell oggetto mettendolo in d3
+    divu d2,d3 *divisione primo field / secondo field salvata in d3
+    swap d3 *posiziono il resto nella word meno significativa di d3
+    move.l d3,d7 *salvo il risultato in d7
+
+    bra ret_method
+
+
+
+
+
+
+
+
+
+* ---METADATA--- do not write below here
+* {
+*     "version": 1,
+*     "description": "",
+*     "name": "LPS_2023.07.21_es1.2",
+*     "language": "M68K",
+*     "createdAt": 1690442464807,
+*     "updatedAt": 1690475762990,
+*     "id": "vsrxzEu"
+* }

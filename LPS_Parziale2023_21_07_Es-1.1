@@ -1,0 +1,83 @@
+#3 Parziale 2023.07.21 
+#Esercizio 1.1
+
+.text 
+inizio_codice:
+#Routine_main
+inizio_main:
+
+#int i = 1;
+li $t0,1
+
+for_begin:
+#i>5
+bgt $t0,5,for_end
+li  $sp,0x10001000 #poniamo sp punta a 0x10011000
+#fun(i)
+move $a0,$t0 #assegnamento dell'argomento al parametro
+jal fun #call fun dal main
+sh $v0,0x1000C0DE #printf 
+#i++
+add $t0,$t0,1
+b for_begin
+for_end:
+li $a0,74 #POP argomento call fun (nel main) precedente tramite sovrascrizione push del nuovo argomento
+jal fun
+sh $v0,0x1000C0DE #printf 
+li $a0,20 #POP argomento call fun (nel main) precedente tramite sovrascrizione push del nuovo argomento
+jal fun
+sh $v0,0x1000C0DE #printf 
+jal fun
+fine_main:
+j fine_codice
+#offsett dallo stackPointer
+.eqv	f_stack_ra 0
+.eqv	f_stack_a0 4
+.eqv              f_stack_t 8
+.eqv	f_stack_size 12
+fun:
+ble $a0,1 fun_base
+#k = numero della chiamata ricorsiva che si sta per iniziare(alla prima corrisponde 0)
+sub $sp,$sp,f_stack_size #alloco 12 byte per l'action Frame(sp dopo questa  punta a 888 -12k)
+sw $ra,f_stack_ra($sp) #memorizzo il return address nella cima dello stack(in 888 -12k +4)
+sw  $a0,f_stack_a0($sp) #memorizzo argomento in 992(888 -12k + 4)
+rem $t1,$a0,5 #int t = n % 5 , memorizzato in $t1
+sw $t1,f_stack_t($sp) #$t1  memorizzato in 996(888 -12k +8)
+
+#sp punta a 888 -12k
+
+bnez $t1,fun_else
+
+#fun_if:
+div $a0,$a0,5
+jal fun
+
+lw $ra,($sp)
+add $sp,$sp,f_stack_size
+
+add $v0,$v0,3
+jr $ra
+
+fun_else:
+sub $a0,$a0,1 #calcolo argomento chiamata ricorsiva : n-1
+jal fun
+
+  #sp punta a 888 - k12 dove k è il num della chiamata ricorsiva da cui si torna
+
+lw $ra,($sp) #pop return address della call precedente in $ra
+lw $t1,f_stack_t($sp)#pop t in $t1
+add $sp,$sp,f_stack_size #faccio puntare $sp al retAdd dell prox call da concludere
+
+add $v0,$v0,$t1 #fun(n-1) + t # calcolo risultato ultima fun in $v0
+jr $ra
+
+
+
+
+
+
+fun_base:
+li $v0,2 #return 2
+jr  $ra #ritorno da routine fun
+fine_codice:
+
